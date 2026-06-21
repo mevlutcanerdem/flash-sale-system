@@ -1,0 +1,13 @@
+# IDE dosyaları
+.idea/
+.vscode/
+*.iml
+
+# Mac/Windows sistem dosyaları
+.DS_Store
+Thumbs.db
+
+# Derlenmiş dosyalar (İleride lazım olacak)
+target/
+build/
+*.jar
