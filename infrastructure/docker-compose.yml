@@ -1,5 +1,4 @@
 services:
-  # 1. Kalıcı Veritabanı (PostgreSQL Resmi İmajı)
   postgres:
     image: postgres:15-alpine
     environment:
@@ -9,22 +8,21 @@ services:
     ports:
       - "5432:5432"
 
-  # 2. Şimşek Hızında Önbellek (Redis Resmi İmajı)
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
 
-  # 3. Apache'nin Kendi Resmi Kafka İmajı (KRaft Modunda)
   kafka:
     image: apache/kafka:3.7.0
+    container_name: kafka-broker # İSMİNİ SABİTLEDİK
     ports:
-      - "9092:9092"
+      - "9092:9092" # Portu standart 9092'ye çektik
     environment:
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 # STANDART AYARA DÖNDÜK
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
