@@ -1,28 +1,48 @@
+version: '3.8'
+
 services:
+  # 1. REDIS (Işık hızında stok yönetimi için)
+  redis:
+    image: redis:7.0-alpine
+    container_name: flashsale-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # 2. POSTGRESQL (Sipariş ve Cüzdan verileri için)
   postgres:
     image: postgres:15-alpine
+    container_name: flashsale-postgres
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password123
-      POSTGRES_DB: wallet_db
+      # Postgres ayağa kalkarken iki veritabanını otomatik oluşturması için ufak bir hile
+      POSTGRES_DB: order_db
     ports:
       - "5432:5432"
+    restart: always
+    # Cüzdan DB'sini otomatik oluşturmak için ufak bir script
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  kafka:
-    image: apache/kafka:3.7.0
-    container_name: kafka-broker # İSMİNİ SABİTLEDİK
-    ports:
-      - "9092:9092" # Portu standart 9092'ye çektik
+  # 3. ZOOKEEPER (Kafka'nın orkestra şefi)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: flashsale-zookeeper
     environment:
-      - KAFKA_NODE_ID=1
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 # STANDART AYARA DÖNDÜK
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
-      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # 4. KAFKA (Mikroservislerin sinir sistemi / mesaj kuyruğu)
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: flashsale-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
